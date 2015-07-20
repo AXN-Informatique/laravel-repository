@@ -4,8 +4,10 @@ namespace Axn\Repository\Eloquent\Parsers;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\Relation;
+use Illuminate\Database\Eloquent\Relations\HasOneOrMany;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\Relations\MorphTo;
 
 class ColumnsParser
 {
@@ -14,23 +16,54 @@ class ColumnsParser
      *
      * @param  Builder $query
      * @param  array   $columns
+     * @param  boolean &$eager
      * @return void
      */
-    public function apply(Builder $query, array $columns)
+    public function apply(Builder $query, array $columns, &$eager = false)
     {
-        $columnsByRelations = $this->addKeysForEagerLoading(
-            $this->groupColumnsByRelations($columns), $query->getModel()
-        );
+        $columnsByRel = $this->groupByRelations($columns);
 
-        foreach ($columnsByRelations as $relation => $relColumns) {
+        // On tri le tableau pour aller de la relation la plus profonde à la moins profonde
+        // Ex : ['roles.permissions' => [...], 'roles' => [...], '' => [...]]
+        uksort($columnsByRel, function($a, $b) {
+            $aNbDots = substr_count($a, '.');
+            $bNbDots = substr_count($b, '.');
+
+            return ($aNbDots > $bNbDots ? -1 : ($aNbDots < $bNbDots ? 1 : 0));
+        });
+
+        foreach ($columnsByRel as $relation => $columns) {
+            $this->addKeysForEagerLoading($columnsByRel, $relation, $query->getModel());
+        }
+
+        foreach ($columnsByRel as $relation => $columns) {
             if (empty($relation)) {
-                $query->select($relColumns);
+                $this->select($query, $columns);
             } else {
-                $query->with([$relation => function($query) use ($relColumns) {
-                    $query->select($relColumns);
+                $query->with([$relation => function($query) use ($columns) {
+                    $this->select($query, $columns);
                 }]);
+
+                $eager = true;
             }
         }
+    }
+
+    /**
+     * Applique une sélection de colonnes sur une requête via la clause SELECT.
+     *
+     * @param  Builder|Relation $query
+     * @param  array            $columns
+     * @return void
+     */
+    protected function select($query, array $columns)
+    {
+        $query->select(array_map(
+            function($column) use ($query) {
+                return $query->getModel()->getTable().'.'.$column;
+            },
+            $columns
+        ));
     }
 
     /**
@@ -46,89 +79,79 @@ class ColumnsParser
      * @param  array $columns
      * @return array
      */
-    protected function groupColumnsByRelations(array $columns)
+    protected function groupByRelations(array $columns)
     {
-        $columnsByRelations = [];
+        $columnsByRel = [];
 
         foreach ($columns as $column) {
-            $segments = explode('.', $column);
-            $column   = array_splice($segments, -1)[0];
-            $relation = implode('.', $segments);
-
-            if (!isset($columnsByRelations[$relation])) {
-                $columnsByRelations[$relation] = [];
+            if (strpos($column, '.') !== false) {
+                list($relation, $column) = preg_split(
+                    '/(.+)\.([^.]+)/', $column, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
+                );
+            } else {
+                $relation = '';
             }
 
-            $columnsByRelations[$relation][] = $column;
+            if (!isset($columnsByRel[$relation])) {
+                $columnsByRel[$relation] = [];
+            }
+
+            $columnsByRel[$relation][] = $column;
         }
 
-        // On tri les relations de la plus profonde à la moins profonde
-        // Ex : ['roles.permissions' => [...], 'roles' => [...], '' => [...]]
-        uksort($columnsByRelations, function($a, $b) {
-            $aNbDots = substr_count($a, '.');
-            $bNbDots = substr_count($b, '.');
-
-            return ($aNbDots > $bNbDots ? -1 : ($aNbDots < $bNbDots ? 1 : 0));
-        });
-
-        return $columnsByRelations;
+        return $columnsByRel;
     }
 
     /**
-     * Ajoute au tableau de colonnes, pour chaque relation, les clés nécessaires
-     * à l'eager loading. Pour les relations "n-n", le nom de la table est de plus
-     * concaténé aux noms des colonnes afin d'éviter les erreurs de noms ambigues
-     * dûes à la jointure effectuée.
+     * Ajoute au tableau de colonnes les clés nécessaires à l'eager loading.
      *
-     * Par exemple, si l'on demandé les champs suivants sur le modèle User :
-     *   [''            => ['username'],
-     *    'userRoles'   => ['created_at'],
-     *    'roles.perms' => ['display_name']]
-     * on obtient alors :
-     *   [''            => ['username', 'id'],
-     *    'userRoles'   => ['created_at', 'user_id', 'id'],
-     *    'roles.perms' => ['table_perms.display_name', 'table_perms.id]]
-     *
-     * @param  array   $columnsByRelations
+     * @param  array   &$columnsByRel
+     * @param  string  $current
      * @param  Model   $model
      * @return array
      */
-    protected function addKeysForEagerLoading(array $columnsByRelations, Model $model)
+    protected function addKeysForEagerLoading(&$columnsByRel, $current, Model $model)
     {
-        foreach ($columnsByRelations as $relation => &$relColumns) {
-            if (!in_array('id', $relColumns)) {
-                $relColumns[] = 'id';
-            }
-            if (empty($relation)) {
-                continue;
-            }
+        $relationsNames = !empty($current) ? explode('.', $current) : [];
+        $relation = null;
 
-            $relMethods = explode('.', $relation);
-            $parent = '';
-
-            foreach ($relMethods as $iMethod => $relMethod) {
-                $relInstance = $model->$relMethod();
-                $model = $relInstance->getModel();
-
-                if ($iMethod > 0) {
-                    $parent .= (!empty($parent) ? '.' : '').$relMethods[$iMethod - 1];
-                }
-            }
-
-            if ($relInstance instanceof BelongsTo) {
-                if (!empty($columnsByRelations[$parent])
-                    && !in_array($relInstance->getForeignKey(), $columnsByRelations[$parent])) {
-
-                    $columnsByRelations[$parent][] = $relInstance->getForeignKey();
-                }
-            }
-            elseif ($relInstance instanceof BelongsToMany) {
-                $relColumns = array_map(function($column) use ($model) {
-                    return $model->getTable().'.'.$column;
-                }, $relColumns);
-            }
+        foreach ($relationsNames as $relationName) {
+            $relation = $model->$relationName();
+            $model = $relation->getModel();
         }
 
-        return $columnsByRelations;
+        $this->push($columnsByRel[$current], $model->getKeyName());
+
+        if ($relation instanceof HasOneOrMany) {
+            if (!empty($columnsByRel[$current])) {
+                $this->push($columnsByRel[$current], $relation->getPlainForeignKey());
+            }
+        }
+        elseif ($relation instanceof BelongsTo) {
+            $parent = implode('.', array_slice($relationsNames, 0, -1));
+
+            if (!empty($columnsByRel[$parent])) {
+                $this->push($columnsByRel[$parent], $relation->getForeignKey());
+
+                if ($relation instanceof MorphTo) {
+                    $this->push($columnsByRel[$parent], $relation->getMorphType());
+                }
+            }
+        }
+    }
+
+    /**
+     * Ajoute une valeur au tableau uniquement si celui-ci ne contient pas déjà
+     * cette valeur et s'il ne contient pas non plus la valeur '*'.
+     *
+     * @param  array &$array
+     * @param  mixed $value
+     * @return void
+     */
+    protected function push(&$array, $value)
+    {
+        if (!in_array($value, $array) && !in_array('*', $array)) {
+            $array[] = $value;
+        }
     }
 }

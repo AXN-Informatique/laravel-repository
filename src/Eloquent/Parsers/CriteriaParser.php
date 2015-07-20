@@ -36,49 +36,17 @@ class CriteriaParser
             throw new Exception("Criteria cannot be empty.");
         }
 
-        $criteriaByRelations = $this->groupCriteriaByRelations($criteria);
+        $criteriaByRel = $this->groupByRelations($criteria);
 
-        foreach ($criteriaByRelations as $relation => $relCriteria) {
+        foreach ($criteriaByRel as $relation => $criteria) {
             if (empty($relation)) {
-                $this->where($query, $relCriteria);
+                $this->where($query, $criteria);
             } else {
-                $query->whereHas($relation, function($query) use ($relCriteria) {
-                    $this->where($query, $relCriteria);
+                $query->whereHas($relation, function($query) use ($criteria) {
+                    $this->where($query, $criteria);
                 });
             }
         }
-    }
-
-    /**
-     * Met les colonnes par relations.
-     *
-     * Par exemple, si l'on a ceci :
-     *   ['a' => 0, 'r1.b' => 1, 'r1.c' => 2, 'r1.r2.d' => 3]
-     * on obtient alors :
-     *   [''      => ['a' => 0],
-     *    'r1'    => ['b' => 1, 'c' => 2],
-     *    'r1.r2' => ['d' => 3]]
-     *
-     * @param  array $criteria
-     * @return array
-     */
-    protected function groupCriteriaByRelations(array $criteria)
-    {
-        $criteriaByRelations = [];
-
-        foreach ($criteria as $column => $value) {
-            $segments = explode('.', $column);
-            $column   = array_splice($segments, -1)[0];
-            $relation = implode('.', $segments);
-
-            if (!isset($criteriaByRelations[$relation])) {
-                $criteriaByRelations[$relation] = [];
-            }
-
-            $criteriaByRelations[$relation][$column] = $value;
-        }
-
-        return $criteriaByRelations;
     }
 
     /**
@@ -97,6 +65,8 @@ class CriteriaParser
                 $operator = 'EQUAL';
             }
 
+            $column = $query->getModel()->getTable().'.'.$column;
+
             if ($operator === 'IN') {
                 $query->whereIn($column, $value);
             }
@@ -113,5 +83,41 @@ class CriteriaParser
                 throw new Exception("Incorrect operator: $operator");
             }
         }
+    }
+
+    /**
+     * Met les colonnes par relations.
+     *
+     * Par exemple, si l'on a ceci :
+     *   ['a' => 0, 'r1.b' => 1, 'r1.c' => 2, 'r1.r2.d' => 3]
+     * on obtient alors :
+     *   [''      => ['a' => 0],
+     *    'r1'    => ['b' => 1, 'c' => 2],
+     *    'r1.r2' => ['d' => 3]]
+     *
+     * @param  array $criteria
+     * @return array
+     */
+    protected function groupByRelations(array $criteria)
+    {
+        $criteriaByRel = [];
+
+        foreach ($criteria as $column => $value) {
+            if (strpos($column, '.') !== false) {
+                list($relation, $column) = preg_split(
+                    '/(.+)\.([^.]+)/', $column, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
+                );
+            } else {
+                $relation = '';
+            }
+
+            if (!isset($criteriaByRel[$relation])) {
+                $criteriaByRel[$relation] = [];
+            }
+
+            $criteriaByRel[$relation][$column] = $value;
+        }
+
+        return $criteriaByRel;
     }
 }

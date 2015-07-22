@@ -103,13 +103,9 @@ class CriteriaParser
         $criteriaByRel = [];
 
         foreach ($criteria as $column => $value) {
-            if (strpos($column, '.') !== false) {
-                list($relation, $column) = preg_split(
-                    '/(.+)\.([^.]+)/', $column, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
-                );
-            } else {
-                $relation = '';
-            }
+            $segments = explode('.', $column);
+            $column   = array_pop($segments);
+            $relation = implode('.', $segments);
 
             if (!isset($criteriaByRel[$relation])) {
                 $criteriaByRel[$relation] = [];

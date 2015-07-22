@@ -4,6 +4,7 @@ namespace Axn\Repository\Eloquent;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Axn\Repository\Repository;
 
 abstract class EloquentRepository implements Repository
@@ -86,7 +87,7 @@ abstract class EloquentRepository implements Repository
      *
      * @param  int   $id
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Model|null
      */
     public function getById($id, array $columns = [])
     {
@@ -98,7 +99,7 @@ abstract class EloquentRepository implements Repository
      *
      * @param  array $ids
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function getManyByIds(array $ids, array $columns = [])
     {
@@ -109,14 +110,14 @@ abstract class EloquentRepository implements Repository
      * Retrouve tous les enregistrements.
      *
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function getAll(array $columns = [])
     {
         $query = $this->newQuery();
-        $this->columns->apply($query, $columns, $eager);
+        $this->columns->apply($query, $columns);
 
-        return collect($this->all($query, $eager));
+        return $query->get();
     }
 
     /**
@@ -124,7 +125,7 @@ abstract class EloquentRepository implements Repository
      *
      * @param  array $criteria
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Model|null
      */
     public function getBy(array $criteria, array $columns = [])
     {
@@ -132,7 +133,7 @@ abstract class EloquentRepository implements Repository
         $this->columns->apply($query, $columns);
         $this->criteria->apply($query, $criteria);
 
-        return collect($query->first());
+        return $query->first();
     }
 
     /**
@@ -140,15 +141,15 @@ abstract class EloquentRepository implements Repository
      *
      * @param  array $criteria
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function getAllBy(array $criteria, array $columns = [])
     {
         $query = $this->newQuery();
-        $this->columns->apply($query, $columns, $eager);
+        $this->columns->apply($query, $columns);
         $this->criteria->apply($query, $criteria);
 
-        return collect($this->all($query, $eager));
+        return $query->get();
     }
 
     /**
@@ -156,15 +157,15 @@ abstract class EloquentRepository implements Repository
      *
      * @param  array $criteria
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return Collection
      */
     public function getAllDistinctBy(array $criteria, array $columns = [])
     {
         $query = $this->newQuery();
-        $this->columns->apply($query, $columns, $eager);
+        $this->columns->apply($query, $columns);
         $this->criteria->apply($query, $criteria);
 
-        return collect($this->all($query->distinct(), $eager));
+        return $query->distinct()->get();
     }
 
     /**
@@ -349,26 +350,5 @@ abstract class EloquentRepository implements Repository
         }
 
         return $this->model->newQuery();
-    }
-
-    /**
-     * Appèle la méthode get() :
-     *   - Sur le builder d'Eloquent s'il y a besoin de faire de l'eager loading
-     *     (méthode with() utilisée).
-     *   - Ou directement sur le builder de base s'il n'y a pas besoin de faire
-     *     de l'eager loading, ce qui augmente considérablement les performances
-     *     lorsqu'il y a beaucoup de résultats.
-     *
-     * @param  Builder $builder
-     * @param  boolean $eager
-     * @return array
-     */
-    private function all(Builder $builder, $eager)
-    {
-        if ($eager) {
-            return $builder->get()->toArray();
-        } else {
-            return $builder->getQuery()->get();
-        }
     }
 }

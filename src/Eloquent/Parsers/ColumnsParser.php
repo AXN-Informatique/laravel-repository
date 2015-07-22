@@ -16,10 +16,9 @@ class ColumnsParser
      *
      * @param  Builder $query
      * @param  array   $columns
-     * @param  boolean &$eager
      * @return void
      */
-    public function apply(Builder $query, array $columns, &$eager = false)
+    public function apply(Builder $query, array $columns)
     {
         $columnsByRel = $this->groupByRelations($columns);
 
@@ -43,8 +42,6 @@ class ColumnsParser
                 $query->with([$relation => function($query) use ($columns) {
                     $this->select($query, $columns);
                 }]);
-
-                $eager = true;
             }
         }
     }
@@ -67,14 +64,15 @@ class ColumnsParser
     }
 
     /**
-     * Met les colonnes par relations.
+     * Met les colonnes par relations et crée aussi les emplacements des relations
+     * pour lesquelles il n'y a pas de sélection de champs.
      *
      * Par exemple, si l'on a ceci :
-     *   ['a', 'r1.b', 'r1.c', 'r1.r2.d']
+     *   ['a', 'r1.r2.b']
      * on obtient alors :
-     *   [''      => ['a' => 0],
-     *    'r1'    => ['b' => 1, 'c' => 2],
-     *    'r1.r2' => ['d' => 3]]
+     *   [''      => ['a'],
+     *    'r1'    => [],
+     *    'r1.r2' => ['b']]
      *
      * @param  array $columns
      * @return array
@@ -84,16 +82,18 @@ class ColumnsParser
         $columnsByRel = [];
 
         foreach ($columns as $column) {
-            if (strpos($column, '.') !== false) {
-                list($relation, $column) = preg_split(
-                    '/(.+)\.([^.]+)/', $column, -1, PREG_SPLIT_NO_EMPTY | PREG_SPLIT_DELIM_CAPTURE
-                );
-            } else {
-                $relation = '';
-            }
+            $segments = explode('.', $column);
+            $column   = array_pop($segments);
+            $relation = '';
 
-            if (!isset($columnsByRel[$relation])) {
-                $columnsByRel[$relation] = [];
+            array_unshift($segments, $relation);
+
+            foreach ($segments as $segment) {
+                $relation .= (!empty($relation) ? '.' : '').$segment;
+
+                if (!isset($columnsByRel[$relation])) {
+                    $columnsByRel[$relation] = [];
+                }
             }
 
             $columnsByRel[$relation][] = $column;

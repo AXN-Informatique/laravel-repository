@@ -25,7 +25,7 @@ interface Repository
      *
      * @param  int   $id
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return \ArrayAccess|null
      */
     public function getById($id, array $columns);
 
@@ -51,7 +51,7 @@ interface Repository
      *
      * @param  array $criteria
      * @param  array $columns
-     * @return \Illuminate\Support\Collection
+     * @return \ArrayAccess|null
      */
     public function getBy(array $criteria, array $columns);
 

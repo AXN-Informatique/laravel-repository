@@ -32,6 +32,7 @@ class EloquentUserRepository extends EloquentRepository
 ## Utilisation
 
 Les méthodes de base fournies sont les suivantes :
+
  - getById($id, array $columns);
  - getManyByIds(array $ids, array $columns);
  - getAll(array $columns);
@@ -75,6 +76,7 @@ $users = $userRepository->getAllBy(['roles.name' => 'admin']);
 
 Des opérateurs peuvent aussi être utilisés sur les critères. La liste des opérateurs
 possibles est la suivante :
+
  - EQUAL (par défaut)
  - NOT_EQUAL
  - LIKE

@@ -123,19 +123,15 @@ class ColumnsParser
         $this->push($columnsByRel[$current], $model->getKeyName());
 
         if ($relation instanceof HasOneOrMany) {
-            if (!empty($columnsByRel[$current])) {
-                $this->push($columnsByRel[$current], $relation->getPlainForeignKey());
-            }
+            $this->push($columnsByRel[$current], $relation->getPlainForeignKey());
         }
         elseif ($relation instanceof BelongsTo) {
             $parent = implode('.', array_slice($relationsNames, 0, -1));
 
-            if (!empty($columnsByRel[$parent])) {
-                $this->push($columnsByRel[$parent], $relation->getForeignKey());
+            $this->push($columnsByRel[$parent], $relation->getForeignKey());
 
-                if ($relation instanceof MorphTo) {
-                    $this->push($columnsByRel[$parent], $relation->getMorphType());
-                }
+            if ($relation instanceof MorphTo) {
+                $this->push($columnsByRel[$parent], $relation->getMorphType());
             }
         }
     }

@@ -338,17 +338,19 @@ abstract class EloquentRepository implements Repository
      */
     protected function newQuery()
     {
+        $model = $this->model->newInstance();
+
         if (!empty($this->options['trashed'])
-            && in_array(static::SOFT_DELETES_TRAIT, class_uses($this->model)))
+            && in_array(static::SOFT_DELETES_TRAIT, class_uses($model)))
         {
             if ($this->options['trashed'] == 'with') {
-                return $this->model->withTrashed();
+                return $model->withTrashed();
             }
             elseif ($this->options['trashed'] == 'only') {
-                return $this->model->onlyTrashed();
+                return $model->onlyTrashed();
             }
         }
 
-        return $this->model->newQuery();
+        return $model->newQuery();
     }
 }

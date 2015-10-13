@@ -6,6 +6,7 @@
   sélectionné de champ dans le modèle parent.
 - Correction dans la méthode newQuery() pour que l'objet EloquentBuilder retourné
   encapsule une fresh instance du modèle.
+- Ajout de la méthode newModel() dans EloquentRepository.
 
 ## 1.0.0 (2015-09-08)
 

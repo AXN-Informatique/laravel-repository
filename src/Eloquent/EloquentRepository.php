@@ -332,6 +332,18 @@ abstract class EloquentRepository implements Repository
     }
 
     /**
+     * Retourne une nouvelle instance du modèle.
+     *
+     * @param  array   $attributes
+	 * @param  boolean $exists
+     * @return Model
+     */
+    protected function newModel(array $attributes = [], $exists = false)
+    {
+        return $this->model->newInstance($attributes, $exists);
+    }
+
+    /**
      * Retourne une nouvelle instance du builder d'Eloquent.
      *
      * @return Builder

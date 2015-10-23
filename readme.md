@@ -120,7 +120,7 @@ $users = $userRepository->getAllBy([
 
 Le paramètre `$order` permet de spécifier des règles de tri (ORDER BY). Ce paramètre
 doit être fourni exclusivement sous forme de chaîne de caractères. Comme pour le
-paramètre `$columns`, plusieurs règles peuvent être spécifiés en les séparant par
+paramètre `$columns`, plusieurs règles peuvent être spécifiées en les séparant par
 des virgules, et il est possible de préciser la direction (asc ou desc) après le nom
 du champ en séparant par un espace. Exemple :
 

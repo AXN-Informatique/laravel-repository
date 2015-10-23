@@ -33,35 +33,50 @@ class EloquentUserRepository extends EloquentRepository
 
 Les méthodes de base fournies sont les suivantes :
 
-- getById($id, array $columns);
-- getManyByIds(array $ids, array $columns);
-- getAll(array $columns);
-- getBy(array $criteria, array $columns);
-- getAllBy(array $criteria, array $columns);
-- getAllDistinctBy(array $criteria, array $columns);
-- paginate($perPage, array $criteria, array $columns);
-- count(array $criteria);
-- create(array $data);
-- createMany(array $datalist);
-- updateById($id, array $data);
-- updateManyByIds(array $ids, array $data);
-- updateBy(array $criteria, array $data);
-- updateOrCreate(array $attributes, array $data);
-- deleteById($id, $force);
-- deleteManyByIds(array $ids, $force);
-- deleteBy(array $criteria, $force);
+- **getById**($id, $columns = null);
+- **getBy**(array $criteria, $columns = null);
+- **getManyByIds**(array $ids, $columns = null, $order = null, $limit = null, $offset = null);
+- **getAll**($columns = null, $order = null, $limit = null, $offset = null);
+- **getAllBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
+- **getAllDistinctBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
+- **paginate**($perPage, array $criteria = [], $columns = null, $order = null);
+- **count**(array $criteria = []);
+- **create**(array $data);
+- **createMany**(array $datalist);
+- **updateById**($id, array $data);
+- **updateManyByIds**(array $ids, array $data);
+- **updateBy**(array $criteria, array $data);
+- **updateOrCreate**(array $attributes, array $data);
+- **deleteById**($id, $force = false);
+- **deleteManyByIds**(array $ids, $force = false);
+- **deleteBy**(array $criteria, $force = false);
 
-Le paramètre $columns permet de sélectionner les colonnes à récupérer. La récupération
-peut également se faire sur les relations. Exemple :
+### Sélection de colonnes (paramètre $columns)
+
+Le paramètre $columns permet de sélectionner les colonnes à récupérer. Il peut être
+fourni sous forme de tableau, ou bien sous forme de chaîne (chaque colonne séparée
+par une virgule). La récupération peut également se faire dans les relations. Exemple :
 
 ```php
-$users = $userRepository->getAll(['username', 'email']);
-
-// Avec sélection sur les relations :
+// Colonnes sous forme de tableau :
 $users = $userRepository->getAll([
-    'username', 'email', 'roles.display_name', 'roles.permissions.display_name'
+    'username',
+    'email'
+]);
+
+// Ou bien sous forme de chaîne de caractères :
+$users = $userRepository->getAll('username, email');
+
+// Avec sélection dans les relations :
+$users = $userRepository->getAll([
+    'username',
+    'email',
+    'roles.display_name',
+    'roles.permissions.display_name'
 ]);
 ```
+
+### Critères de filtrage (paramètre $criteria)
 
 Le paramètre `$criteria` permet de filtrer les enregistrements à récupérer. Le filtrage
 peut également se faire sur les relations. Exemple :
@@ -91,8 +106,29 @@ possibles est la suivante :
 Exemple :
 
 ```php
-$users = $userRepository->getAllBy(['email LIKE' => '%@axn.fr']);
+$users = $userRepository->getAllBy([
+    'email LIKE' => '%@axn.fr'
+]);
 
 // IS NOT NULL
-$users = $userRepository->getAllBy(['email NOT_EQUAL' => null]);
+$users = $userRepository->getAllBy([
+    'email NOT_EQUAL' => null
+]);
 ```
+
+### Règles de tri (paramètre $order)
+
+Le paramètre `$order` permet de spécifier des règles de tri (ORDER BY). Ce paramètre
+doit être fourni exclusivement sous forme de chaîne de caractères. Comme pour le
+paramètre `$columns`, plusieurs règles peuvent être spécifiés en les séparant par
+des virgules, et il est possible de préciser la direction (asc ou desc) après le nom
+du champ en séparant par un espace. Exemple :
+
+```php
+$users = $userRepository->getAll(null, 'date_inscription desc, lastname, firstname');
+```
+
+### Limitation et décalage (paramètres $limit et $offset)
+
+Aux méthodes `getAll*` peuvent être spécifiés les paramètres `$limit` et `$offset`
+qui permettent de ne sélectionner qu'un nombre limité d'enregistrements.

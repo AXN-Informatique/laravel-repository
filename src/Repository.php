@@ -23,79 +23,79 @@ interface Repository
     /**
      * Retrouve un enregistrement via son id.
      *
-     * @param  int   $id
-     * @param  array $columns
+     * @param  int               $id
+     * @param  array|string|null $columns
      * @return \ArrayAccess|null
      */
-    public function getById($id, array $columns);
+    public function getById($id, $columns = null);
 
     /**
      * Retrouve un enregistrement via des critères.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array             $criteria
+     * @param  array|string|null $columns
      * @return \ArrayAccess|null
      */
-    public function getBy(array $criteria, array $columns);
+    public function getBy(array $criteria, $columns = null);
 
     /**
      * Retrouve plusieurs enregistrements via leurs ids.
      *
-     * @param  array       $ids
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $ids
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getManyByIds(array $ids, array $columns, $order = null, $limit = null, $offset = null);
+    public function getManyByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve tous les enregistrements.
      *
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getAll(array $columns, $order = null, $limit = null, $offset = null);
+    public function getAll($columns = null, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements via des critères.
      *
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getAllBy(array $criteria, array $columns, $order = null, $limit = null, $offset = null);
+    public function getAllBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements distincts via des critères.
      *
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getAllDistinctBy(array $criteria, array $columns, $order = null, $limit = null, $offset = null);
+    public function getAllDistinctBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements via des critères et les pagine avec
      * le Paginator de Laravel.
      *
-     * @param  int         $perPage
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
+     * @param  int               $perPage
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate($perPage, array $criteria, array $columns, $order = null);
+    public function paginate($perPage, array $criteria = [], $columns = null, $order = null);
 
     /**
      * Retourne le nombre d'enregistrements correspondant aux critères.
@@ -103,7 +103,7 @@ interface Repository
      * @param  array $criteria
      * @return int
      */
-    public function count(array $criteria);
+    public function count(array $criteria = []);
 
     /**
      * Crée un nouvel enregistrement.
@@ -164,7 +164,7 @@ interface Repository
      * @param  boolean $force
      * @return mixed
      */
-    public function deleteById($id, $force);
+    public function deleteById($id, $force = false);
 
     /**
      * Supprime plusieurs enregistrements via leurs ids.
@@ -173,7 +173,7 @@ interface Repository
      * @param  boolean $force
      * @return int
      */
-    public function deleteManyByIds(array $ids, $force);
+    public function deleteManyByIds(array $ids, $force = false);
 
     /**
      * Supprime un enregistrement via des critères.
@@ -182,5 +182,5 @@ interface Repository
      * @param  boolean $force
      * @return mixed
      */
-    public function deleteBy(array $criteria, $force);
+    public function deleteBy(array $criteria, $force = false);
 }

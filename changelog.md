@@ -4,6 +4,7 @@
 
 - Ajout de paramètres/fonctionnalités à la méthode newQuery(), ainsi qu'aux méthodes
   de récupération, pour ordonner, limiter et appliquer un offset.
+- $columns peut maintenant être fourni sous forme de chaîne de caractères.
 
 ## 1.0.1 (2015-10-23)
 

@@ -65,11 +65,11 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve un enregistrement via son id.
      *
-     * @param  int   $id
-     * @param  array $columns
+     * @param  int               $id
+     * @param  array|string|null $columns
      * @return Model|null
      */
-    public function getById($id, array $columns = [])
+    public function getById($id, $columns = null)
     {
         return $this->getBy([$this->model->getKeyName() => $id], $columns);
     }
@@ -77,11 +77,11 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve un enregistrement via des critères.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array             $criteria
+     * @param  array|string|null $columns
      * @return Model|null
      */
-    public function getBy(array $criteria, array $columns = [])
+    public function getBy(array $criteria, $columns = null)
     {
         return $this->newQuery($criteria, $columns)->first();
     }
@@ -89,14 +89,14 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve plusieurs enregistrements via leurs ids.
      *
-     * @param  array       $ids
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $ids
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return Collection
      */
-    public function getManyByIds(array $ids, array $columns = [], $order = null, $limit = null, $offset = null)
+    public function getManyByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
     {
         return $this->getAllBy([$this->model->getKeyName().' IN' => $ids], $columns, $order, $limit, $offset);
     }
@@ -104,13 +104,13 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve tous les enregistrements.
      *
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return Collection
      */
-    public function getAll(array $columns = [], $order = null, $limit = null, $offset = null)
+    public function getAll($columns = null, $order = null, $limit = null, $offset = null)
     {
         return $this->getAllBy([], $columns, $order, $limit, $offset);
     }
@@ -118,14 +118,14 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve plusieurs enregistrements via des critères.
      *
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return Collection
      */
-    public function getAllBy(array $criteria, array $columns = [], $order = null, $limit = null, $offset = null)
+    public function getAllBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
         return $this->newQuery($criteria, $columns, $order, $limit, $offset)->get();
     }
@@ -133,14 +133,14 @@ abstract class EloquentRepository implements Repository
     /**
      * Retrouve plusieurs enregistrements distincts via des critères.
      *
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return Collection
      */
-    public function getAllDistinctBy(array $criteria, array $columns = [], $order = null, $limit = null, $offset = null)
+    public function getAllDistinctBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
         return $this->newQuery($criteria, $columns, $order, $limit, $offset)->distinct()->get();
     }
@@ -149,13 +149,13 @@ abstract class EloquentRepository implements Repository
      * Retrouve plusieurs enregistrements via des critères et les pagine avec
      * le Paginator de Laravel.
      *
-     * @param  int         $perPage
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
+     * @param  int               $perPage
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate($perPage, array $criteria = [], array $columns = [], $order = null)
+    public function paginate($perPage, array $criteria = [], $columns = null, $order = null)
     {
         return $this->newQuery($criteria, $columns, $order)->paginate($perPage);
     }
@@ -307,14 +307,14 @@ abstract class EloquentRepository implements Repository
     /**
      * Retourne une nouvelle instance du builder d'Eloquent.
      *
-     * @param  array       $criteria
-     * @param  array       $columns
-     * @param  string|null $order
-     * @param  int|null    $limit
-     * @param  int|null    $offset
+     * @param  array             $criteria
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
      * @return Builder
      */
-    protected function newQuery(array $criteria = [], array $columns = [], $order = null, $limit = null, $offset = null)
+    protected function newQuery(array $criteria = [], $columns = null, $order = null, $limit = null, $offset = null)
     {
         $model = $this->model->newInstance();
 
@@ -337,6 +337,9 @@ abstract class EloquentRepository implements Repository
             (new Parsers\CriteriaParser)->apply($query, $criteria);
         }
         if (!empty($columns)) {
+            if (!is_array($columns)) {
+                $columns = array_map('trim', explode(',', $columns));
+            }
             (new Parsers\ColumnsParser)->apply($query, $columns);
         }
         if (!empty($order)) {

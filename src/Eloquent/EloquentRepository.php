@@ -15,32 +15,18 @@ abstract class EloquentRepository implements Repository
     const SOFT_DELETES_TRAIT = 'Illuminate\Database\Eloquent\SoftDeletes';
 
     /**
-     * Instance du modèle associé à cet entrepot.
+     * Instance du modèle associé à ce repository.
      *
      * @var Model
      */
     private $model;
 
     /**
-     * Options pour l'entrepôt.
+     * Options du repository.
      *
      * @var array
      */
     private $options;
-
-    /**
-     * Permet de criteria les colonnes avec relations.
-     *
-     * @var Parsers\ColumnsParser
-     */
-    private $columns;
-
-    /**
-     * Permet de criteria les critères de filtrage.
-     *
-     * @var Parsers\CriteriaParser
-     */
-    private $criteria;
 
     /**
      * Constructeur.
@@ -50,36 +36,30 @@ abstract class EloquentRepository implements Repository
      */
     public function __construct(Model $model, array $options = [])
     {
-        $this->model    = $model;
-        $this->options  = $options;
-        $this->columns  = new Parsers\ColumnsParser;
-        $this->criteria = new Parsers\CriteriaParser;
+        $this->model = $model;
+        $this->options = $options;
     }
 
     /**
-     * Retourne une nouvelle instance de l'entrepôt, avec une instance du modèle
+     * Retourne une nouvelle instance du repository, avec une instance du modèle
      * incluant les enregistrements supprimés.
      *
      * @return static
      */
     public function withTrashed()
     {
-        $options = array_merge($this->options, ['trashed' => 'with']);
-
-        return new static($this->model, $options);
+        return new static($this->model, array_merge($this->options, ['trashed' => 'with']));
     }
 
     /**
-     * Retourne une nouvelle instance de l'entrepôt, avec une instance du modèle
+     * Retourne une nouvelle instance du repository, avec une instance du modèle
      * contenant uniquement les enregistrements supprimés.
      *
      * @return static
      */
     public function onlyTrashed()
     {
-        $options = array_merge($this->options, ['trashed' => 'only']);
-
-        return new static($this->model, $options);
+        return new static($this->model, array_merge($this->options, ['trashed' => 'only']));
     }
 
     /**
@@ -95,32 +75,6 @@ abstract class EloquentRepository implements Repository
     }
 
     /**
-     * Retrouve plusieurs enregistrements via leurs ids.
-     *
-     * @param  array $ids
-     * @param  array $columns
-     * @return Collection
-     */
-    public function getManyByIds(array $ids, array $columns = [])
-    {
-        return $this->getAllBy([$this->model->getKeyName().' IN' => $ids], $columns);
-    }
-
-    /**
-     * Retrouve tous les enregistrements.
-     *
-     * @param  array $columns
-     * @return Collection
-     */
-    public function getAll(array $columns = [])
-    {
-        $query = $this->newQuery();
-        $this->columns->apply($query, $columns);
-
-        return $query->get();
-    }
-
-    /**
      * Retrouve un enregistrement via des critères.
      *
      * @param  array $criteria
@@ -129,64 +83,81 @@ abstract class EloquentRepository implements Repository
      */
     public function getBy(array $criteria, array $columns = [])
     {
-        $query = $this->newQuery();
-        $this->columns->apply($query, $columns);
-        $this->criteria->apply($query, $criteria);
+        return $this->newQuery($criteria, $columns)->first();
+    }
 
-        return $query->first();
+    /**
+     * Retrouve plusieurs enregistrements via leurs ids.
+     *
+     * @param  array       $ids
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
+     * @return Collection
+     */
+    public function getManyByIds(array $ids, array $columns = [], $order = null, $limit = null, $offset = null)
+    {
+        return $this->getAllBy([$this->model->getKeyName().' IN' => $ids], $columns, $order, $limit, $offset);
+    }
+
+    /**
+     * Retrouve tous les enregistrements.
+     *
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
+     * @return Collection
+     */
+    public function getAll(array $columns = [], $order = null, $limit = null, $offset = null)
+    {
+        return $this->getAllBy([], $columns, $order, $limit, $offset);
     }
 
     /**
      * Retrouve plusieurs enregistrements via des critères.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
      * @return Collection
      */
-    public function getAllBy(array $criteria, array $columns = [])
+    public function getAllBy(array $criteria, array $columns = [], $order = null, $limit = null, $offset = null)
     {
-        $query = $this->newQuery();
-        $this->columns->apply($query, $columns);
-        $this->criteria->apply($query, $criteria);
-
-        return $query->get();
+        return $this->newQuery($criteria, $columns, $order, $limit, $offset)->get();
     }
 
     /**
      * Retrouve plusieurs enregistrements distincts via des critères.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
      * @return Collection
      */
-    public function getAllDistinctBy(array $criteria, array $columns = [])
+    public function getAllDistinctBy(array $criteria, array $columns = [], $order = null, $limit = null, $offset = null)
     {
-        $query = $this->newQuery();
-        $this->columns->apply($query, $columns);
-        $this->criteria->apply($query, $criteria);
-
-        return $query->distinct()->get();
+        return $this->newQuery($criteria, $columns, $order, $limit, $offset)->distinct()->get();
     }
 
     /**
      * Retrouve plusieurs enregistrements via des critères et les pagine avec
      * le Paginator de Laravel.
      *
-     * @param  int   $perPage
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  int         $perPage
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate($perPage, array $criteria = [], array $columns = [])
+    public function paginate($perPage, array $criteria = [], array $columns = [], $order = null)
     {
-        $query = $this->newQuery();
-        $this->columns->apply($query, $columns);
-
-        if (!empty($criteria)) {
-            $this->criteria->apply($query, $criteria);
-        }
-
-        return $query->paginate($perPage);
+        return $this->newQuery($criteria, $columns, $order)->paginate($perPage);
     }
 
     /**
@@ -197,13 +168,7 @@ abstract class EloquentRepository implements Repository
      */
     public function count(array $criteria = [])
     {
-        $query = $this->newQuery();
-
-        if (!empty($criteria)) {
-            $this->criteria->apply($query, $criteria);
-        }
-
-        return $query->count();
+        return $this->newQuery($criteria)->count();
     }
 
     /**
@@ -270,10 +235,7 @@ abstract class EloquentRepository implements Repository
      */
     public function updateBy(array $criteria, array $data)
     {
-        $query = $this->newQuery();
-        $this->criteria->apply($query, $criteria);
-
-        return $query->update($data);
+        return $this->newQuery($criteria)->update($data);
     }
 
     /**
@@ -321,8 +283,7 @@ abstract class EloquentRepository implements Repository
      */
     public function deleteBy(array $criteria, $force = false)
     {
-        $query = $this->newQuery();
-        $this->criteria->apply($query, $criteria);
+        $query = $this->newQuery($criteria);
 
         if ($force) {
             return $query->forceDelete();
@@ -346,12 +307,18 @@ abstract class EloquentRepository implements Repository
     /**
      * Retourne une nouvelle instance du builder d'Eloquent.
      *
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
      * @return Builder
      */
-    protected function newQuery()
+    protected function newQuery(array $criteria = [], array $columns = [], $order = null, $limit = null, $offset = null)
     {
         $model = $this->model->newInstance();
 
+        // Sans, avec ou seulement avec les enregistrement supprimés (soft deletes)
         if (!empty($this->options['trashed'])
             && in_array(static::SOFT_DELETES_TRAIT, class_uses($model)))
         {
@@ -363,6 +330,28 @@ abstract class EloquentRepository implements Repository
             }
         }
 
-        return $model->newQuery();
+        $query = $model->newQuery();
+
+        // Filtrage de la requête en fonction des paramètres
+        if (!empty($criteria)) {
+            (new Parsers\CriteriaParser)->apply($query, $criteria);
+        }
+        if (!empty($columns)) {
+            (new Parsers\ColumnsParser)->apply($query, $columns);
+        }
+        if (!empty($order)) {
+            foreach (explode(',', $order) as $orderBy) {
+                $o = explode(' ', trim($orderBy));
+                $query->orderBy($o[0], !empty($o[1]) ? $o[1] : 'asc');
+            }
+        }
+        if ($limit !== null && $limit > 0) {
+            $query->limit($limit);
+        }
+        if ($offset !== null && $offset >= 0) {
+            $query->offset($offset);
+        }
+
+        return $query;
     }
 }

@@ -1,5 +1,10 @@
 # Changelog for Laravel Repository
 
+## 1.1.0.dev
+
+- Ajout de paramètres/fonctionnalités à la méthode newQuery(), ainsi qu'aux méthodes
+  de récupération, pour ordonner, limiter et appliquer un offset.
+
 ## 1.0.1 (2015-10-23)
 
 - Correction d'un problème lors de la sélection d'un champ dans une relation sans avoir

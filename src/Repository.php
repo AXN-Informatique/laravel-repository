@@ -5,7 +5,7 @@ namespace Axn\Repository;
 interface Repository
 {
     /**
-     * Retourne une nouvelle instance de l'entrepôt, avec une instance du modèle
+     * Retourne une nouvelle instance du repository, avec une instance du modèle
      * incluant les enregistrements supprimés.
      *
      * @return static
@@ -13,7 +13,7 @@ interface Repository
     public function withTrashed();
 
     /**
-     * Retourne une nouvelle instance de l'entrepôt, avec une instance du modèle
+     * Retourne une nouvelle instance du repository, avec une instance du modèle
      * contenant uniquement les enregistrements supprimés.
      *
      * @return static
@@ -30,23 +30,6 @@ interface Repository
     public function getById($id, array $columns);
 
     /**
-     * Retrouve plusieurs enregistrements via leurs ids.
-     *
-     * @param  array $ids
-     * @param  array $columns
-     * @return \Illuminate\Support\Collection
-     */
-    public function getManyByIds(array $ids, array $columns);
-
-    /**
-     * Retrouve tous les enregistrements.
-     *
-     * @param  array $columns
-     * @return \Illuminate\Support\Collection
-     */
-    public function getAll(array $columns);
-
-    /**
      * Retrouve un enregistrement via des critères.
      *
      * @param  array $criteria
@@ -56,33 +39,63 @@ interface Repository
     public function getBy(array $criteria, array $columns);
 
     /**
-     * Retrouve plusieurs enregistrements via des critères.
+     * Retrouve plusieurs enregistrements via leurs ids.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array       $ids
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getAllBy(array $criteria, array $columns);
+    public function getManyByIds(array $ids, array $columns, $order = null, $limit = null, $offset = null);
+
+    /**
+     * Retrouve tous les enregistrements.
+     *
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAll(array $columns, $order = null, $limit = null, $offset = null);
+
+    /**
+     * Retrouve plusieurs enregistrements via des critères.
+     *
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllBy(array $criteria, array $columns, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements distincts via des critères.
      *
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
+     * @param  int|null    $limit
+     * @param  int|null    $offset
      * @return \Illuminate\Support\Collection
      */
-    public function getAllDistinctBy(array $criteria, array $columns);
+    public function getAllDistinctBy(array $criteria, array $columns, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements via des critères et les pagine avec
      * le Paginator de Laravel.
      *
-     * @param  int   $perPage
-     * @param  array $criteria
-     * @param  array $columns
+     * @param  int         $perPage
+     * @param  array       $criteria
+     * @param  array       $columns
+     * @param  string|null $order
      * @return \Illuminate\Contracts\Pagination\LengthAwarePaginator
      */
-    public function paginate($perPage, array $criteria, array $columns);
+    public function paginate($perPage, array $criteria, array $columns, $order = null);
 
     /**
      * Retourne le nombre d'enregistrements correspondant aux critères.

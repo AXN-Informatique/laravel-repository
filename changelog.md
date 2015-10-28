@@ -1,5 +1,10 @@
 # Changelog for Laravel Repository
 
+## 1.1.1-dev
+
+- Option "trashed" de la méthode newQuery() déplacée dans newModel().
+- $order peut maintenant être fourni sous forme de tableau.
+
 ## 1.1.0 (2015-10-26)
 
 - Ajout de paramètres/fonctionnalités à la méthode newQuery(), ainsi qu'aux méthodes

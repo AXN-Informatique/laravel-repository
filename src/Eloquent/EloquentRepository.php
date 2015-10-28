@@ -301,21 +301,7 @@ abstract class EloquentRepository implements Repository
      */
     protected function newModel(array $attributes = [], $exists = false)
     {
-        $model = $this->model->newInstance($attributes, $exists);
-
-        // Sans, avec, ou seulement avec les enregistrement supprimés si soft deletes
-        if (!empty($this->options['trashed'])
-            && in_array(static::SOFT_DELETES_TRAIT, class_uses($model)))
-        {
-            if ($this->options['trashed'] == 'with') {
-                return $model->withTrashed();
-            }
-            elseif ($this->options['trashed'] == 'only') {
-                return $model->onlyTrashed();
-            }
-        }
-
-        return $model;
+        return $this->model->newInstance($attributes, $exists);
     }
 
     /**
@@ -330,7 +316,21 @@ abstract class EloquentRepository implements Repository
      */
     protected function newQuery(array $criteria = [], $columns = null, $order = null, $limit = null, $offset = null)
     {
-        $query = $this->newModel()->newQuery();
+        $model = $this->model->newInstance();
+
+        // Sans, avec ou seulement avec les enregistrement supprimés (soft deletes)
+        if (!empty($this->options['trashed'])
+            && in_array(static::SOFT_DELETES_TRAIT, class_uses($model)))
+        {
+            if ($this->options['trashed'] == 'with') {
+                return $model->withTrashed();
+            }
+            elseif ($this->options['trashed'] == 'only') {
+                return $model->onlyTrashed();
+            }
+        }
+
+        $query = $model->newQuery();
 
         // Filtrage de la requête en fonction des paramètres
         if (!empty($criteria)) {
@@ -343,15 +343,9 @@ abstract class EloquentRepository implements Repository
             (new Parsers\ColumnsParser)->apply($query, $columns);
         }
         if (!empty($order)) {
-            if (!is_array($order)) {
-                foreach (explode(',', $order) as $o) {
-                    list($col, $dir) = array_merge(explode(' ', trim($o)), ['asc']);
-                    $query->orderBy($col, $dir);
-                }
-            } else {
-                foreach ($order as $col => $dir) {
-                    $query->orderBy($col, $dir);
-                }
+            foreach (explode(',', $order) as $orderBy) {
+                $o = explode(' ', trim($orderBy));
+                $query->orderBy($o[0], !empty($o[1]) ? $o[1] : 'asc');
             }
         }
         if ($limit !== null && $limit > 0) {

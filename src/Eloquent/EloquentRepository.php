@@ -218,8 +218,7 @@ abstract class EloquentRepository implements Repository
     /**
      * Supprime un enregistrement via son id.
      *
-     * @param  int     $id
-     * @param  boolean $force
+     * @param  int   $id
      * @return mixed
      */
     public function deleteById($id)
@@ -230,8 +229,7 @@ abstract class EloquentRepository implements Repository
     /**
      * Supprime plusieurs enregistrements via leurs ids.
      *
-     * @param  array   $ids
-     * @param  boolean $force
+     * @param  array $ids
      * @return int
      */
     public function deleteManyByIds(array $ids)
@@ -242,8 +240,7 @@ abstract class EloquentRepository implements Repository
     /**
      * Supprime un enregistrement via des critères.
      *
-     * @param  array   $criteria
-     * @param  boolean $force
+     * @param  array $criteria
      * @return mixed
      */
     public function deleteBy(array $criteria)

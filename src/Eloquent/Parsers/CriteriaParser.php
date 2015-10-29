@@ -59,12 +59,7 @@ class CriteriaParser
     protected function where(Builder $query, array $criteria)
     {
         foreach ($criteria as $column => $value) {
-            if (strpos($column, ' ')) {
-                list($column, $operator) = explode(' ', $column);
-            } else {
-                $operator = 'EQUAL';
-            }
-
+            list($column, $operator) = array_merge(explode(' ', $column), ['EQUAL']);
             $column = $query->getModel()->getTable().'.'.$column;
 
             if ($operator === 'IN') {

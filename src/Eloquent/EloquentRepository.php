@@ -10,11 +10,6 @@ use Axn\Repository\Repository;
 abstract class EloquentRepository implements Repository
 {
     /**
-     * Nom du trait utilisé par le modèle pour les soft deletes.
-     */
-    const SOFT_DELETES_TRAIT = 'Illuminate\Database\Eloquent\SoftDeletes';
-
-    /**
      * Instance du modèle associé à ce repository.
      *
      * @var Model
@@ -22,44 +17,14 @@ abstract class EloquentRepository implements Repository
     private $model;
 
     /**
-     * Options du repository.
-     *
-     * @var array
-     */
-    private $options;
-
-    /**
      * Constructeur.
      *
      * @param  Model $model
      * @return void
      */
-    public function __construct(Model $model, array $options = [])
+    public function __construct(Model $model)
     {
         $this->model = $model;
-        $this->options = $options;
-    }
-
-    /**
-     * Retourne une nouvelle instance du repository, avec une instance du modèle
-     * incluant les enregistrements supprimés.
-     *
-     * @return static
-     */
-    public function withTrashed()
-    {
-        return new static($this->model, array_merge($this->options, ['trashed' => 'with']));
-    }
-
-    /**
-     * Retourne une nouvelle instance du repository, avec une instance du modèle
-     * contenant uniquement les enregistrements supprimés.
-     *
-     * @return static
-     */
-    public function onlyTrashed()
-    {
-        return new static($this->model, array_merge($this->options, ['trashed' => 'only']));
     }
 
     /**
@@ -83,7 +48,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getBy(array $criteria, $columns = null)
     {
-        return $this->newQuery($criteria, $columns)->first();
+        return $this->filter($this->newQuery(), $criteria, $columns)->first();
     }
 
     /**
@@ -127,7 +92,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getAllBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        return $this->newQuery($criteria, $columns, $order, $limit, $offset)->get();
+        return $this->filter($this->newQuery(), $criteria, $columns, $order, $limit, $offset)->get();
     }
 
     /**
@@ -142,7 +107,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getAllDistinctBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        return $this->newQuery($criteria, $columns, $order, $limit, $offset)->distinct()->get();
+        return $this->filter($this->newQuery(), $criteria, $columns, $order, $limit, $offset)->distinct()->get();
     }
 
     /**
@@ -157,7 +122,7 @@ abstract class EloquentRepository implements Repository
      */
     public function paginate($perPage, array $criteria = [], $columns = null, $order = null)
     {
-        return $this->newQuery($criteria, $columns, $order)->paginate($perPage);
+        return $this->filter($this->newQuery(), $criteria, $columns, $order)->paginate($perPage);
     }
 
     /**
@@ -168,7 +133,7 @@ abstract class EloquentRepository implements Repository
      */
     public function count(array $criteria = [])
     {
-        return $this->newQuery($criteria)->count();
+        return $this->filter($this->newQuery(), $criteria)->count();
     }
 
     /**
@@ -235,7 +200,7 @@ abstract class EloquentRepository implements Repository
      */
     public function updateBy(array $criteria, array $data)
     {
-        return $this->newQuery($criteria)->update($data);
+        return $this->filter($this->newQuery(), $criteria)->update($data);
     }
 
     /**
@@ -257,9 +222,9 @@ abstract class EloquentRepository implements Repository
      * @param  boolean $force
      * @return mixed
      */
-    public function deleteById($id, $force = false)
+    public function deleteById($id)
     {
-        return $this->deleteBy([$this->model->getKeyName() => $id], $force);
+        return $this->deleteBy([$this->model->getKeyName() => $id]);
     }
 
     /**
@@ -269,9 +234,9 @@ abstract class EloquentRepository implements Repository
      * @param  boolean $force
      * @return int
      */
-    public function deleteManyByIds(array $ids, $force = false)
+    public function deleteManyByIds(array $ids)
     {
-        return $this->deleteBy([$this->model->getKeyName().' IN' => $ids], $force);
+        return $this->deleteBy([$this->model->getKeyName().' IN' => $ids]);
     }
 
     /**
@@ -281,15 +246,9 @@ abstract class EloquentRepository implements Repository
      * @param  boolean $force
      * @return mixed
      */
-    public function deleteBy(array $criteria, $force = false)
+    public function deleteBy(array $criteria)
     {
-        $query = $this->newQuery($criteria);
-
-        if ($force) {
-            return $query->forceDelete();
-        } else {
-            return $query->delete();
-        }
+        return $this->filter($this->newQuery(), $criteria)->delete();
     }
 
     /**
@@ -305,8 +264,20 @@ abstract class EloquentRepository implements Repository
     }
 
     /**
-     * Retourne une nouvelle instance du builder d'Eloquent.
+     * Retourne une nouvelle instance de requête (Eloquent Builder).
      *
+     * @return Builder
+     */
+    protected function newQuery()
+    {
+        return $this->model->newQuery();
+    }
+
+    /**
+     * Applique des filtres (critères, sélection de colonnes, ordonnement, etc.)
+     * sur une requête.
+     *
+     * @param  Builder           $query
      * @param  array             $criteria
      * @param  array|string|null $columns
      * @param  string|null       $order
@@ -314,25 +285,8 @@ abstract class EloquentRepository implements Repository
      * @param  int|null          $offset
      * @return Builder
      */
-    protected function newQuery(array $criteria = [], $columns = null, $order = null, $limit = null, $offset = null)
+    protected function filter(Builder $query, array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        $model = $this->model->newInstance();
-
-        // Sans, avec ou seulement avec les enregistrement supprimés (soft deletes)
-        if (!empty($this->options['trashed'])
-            && in_array(static::SOFT_DELETES_TRAIT, class_uses($model)))
-        {
-            if ($this->options['trashed'] == 'with') {
-                return $model->withTrashed();
-            }
-            elseif ($this->options['trashed'] == 'only') {
-                return $model->onlyTrashed();
-            }
-        }
-
-        $query = $model->newQuery();
-
-        // Filtrage de la requête en fonction des paramètres
         if (!empty($criteria)) {
             (new Parsers\CriteriaParser)->apply($query, $criteria);
         }
@@ -343,9 +297,15 @@ abstract class EloquentRepository implements Repository
             (new Parsers\ColumnsParser)->apply($query, $columns);
         }
         if (!empty($order)) {
-            foreach (explode(',', $order) as $orderBy) {
-                $o = explode(' ', trim($orderBy));
-                $query->orderBy($o[0], !empty($o[1]) ? $o[1] : 'asc');
+            if (!is_array($order)) {
+                foreach (explode(',', $order) as $o) {
+                    list($col, $dir) = array_merge(explode(' ', trim($o)), ['asc']);
+                    $query->orderBy($col, $dir);
+                }
+            } else {
+                foreach ($order as $col => $dir) {
+                    $query->orderBy($col, $dir);
+                }
             }
         }
         if ($limit !== null && $limit > 0) {

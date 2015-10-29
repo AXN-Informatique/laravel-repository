@@ -33,23 +33,23 @@ class EloquentUserRepository extends EloquentRepository
 
 Les méthodes de base fournies sont les suivantes :
 
-- **getById**($id, $columns = null);
-- **getBy**(array $criteria, $columns = null);
-- **getManyByIds**(array $ids, $columns = null, $order = null, $limit = null, $offset = null);
-- **getAll**($columns = null, $order = null, $limit = null, $offset = null);
-- **getAllBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
-- **getAllDistinctBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null);
-- **paginate**($perPage, array $criteria = [], $columns = null, $order = null);
-- **count**(array $criteria = []);
-- **create**(array $data);
-- **createMany**(array $datalist);
-- **updateById**($id, array $data);
-- **updateManyByIds**(array $ids, array $data);
-- **updateBy**(array $criteria, array $data);
-- **updateOrCreate**(array $attributes, array $data);
-- **deleteById**($id, $force = false);
-- **deleteManyByIds**(array $ids, $force = false);
-- **deleteBy**(array $criteria, $force = false);
+- **getById**($id, $columns = null)
+- **getBy**(array $criteria, $columns = null)
+- **getManyByIds**(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
+- **getAll**($columns = null, $order = null, $limit = null, $offset = null)
+- **getAllBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
+- **getAllDistinctBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
+- **paginate**($perPage, array $criteria = [], $columns = null, $order = null)
+- **count**(array $criteria = [])
+- **create**(array $data)
+- **createMany**(array $datalist)
+- **updateById**($id, array $data)
+- **updateManyByIds**(array $ids, array $data)
+- **updateBy**(array $criteria, array $data)
+- **updateOrCreate**(array $attributes, array $data)
+- **deleteById**($id, $force = false)
+- **deleteManyByIds**(array $ids, $force = false)
+- **deleteBy**(array $criteria, $force = false)
 
 ### Sélection de colonnes (paramètre $columns)
 
@@ -132,3 +132,51 @@ $users = $userRepository->getAll(null, 'date_inscription desc, lastname, firstna
 
 Aux méthodes `getAll*` peuvent être spécifiés les paramètres `$limit` et `$offset`
 qui permettent de ne sélectionner qu'un nombre limité d'enregistrements.
+
+### Ajout de méthodes à un repository Eloquent
+
+Il est bien sûr possible d'ajouter des méthodes à un repository, si les méthodes
+de base ne sont pas suffisantes. Les méthodes suivantes peuvent alors être utilisées
+pour construire des requêtes (repository Eloquent, uniquement) :
+
+- **newModel**(array $attributes = [], $exists = false)
+- **newQuery**()
+- **filter**($query, array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
+
+Exemples :
+
+```php
+// App\Repositories\EloquentUserRepository
+
+public function getAllWithTrashed($columns = null, $order = null, $limit = null, $offset = null)
+{
+    $query = $this->newModel()->withTrashed();
+
+    return $this->filter($query, [], $columns, $order, $limit, $offset)->get();
+}
+
+public function getAllActive($columns = null, $order = null, $limit = null, $offset = null)
+{
+    $query = $this->newQuery()->where('active', 1);
+
+    return $this->filter($query, [], $columns, $order, $limit, $offset)->get();
+}
+
+public function getAllForDataTable(array $where = [])
+{
+    $query = $this->newQuery()
+        ->join('profils', 'profils.id', '=', 'users.profil_id')
+        ->select([
+            'users.id',
+            'users.username',
+            'users.email',
+            'profils.name'
+        ]);
+
+    if (!empty($where['profil_id'])) {
+        $query->where('profils.id', $where['profil_id']);
+    }
+
+    return $query->getQuery()->get();
+}
+```

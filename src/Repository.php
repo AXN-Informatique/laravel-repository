@@ -5,22 +5,6 @@ namespace Axn\Repository;
 interface Repository
 {
     /**
-     * Retourne une nouvelle instance du repository, avec une instance du modèle
-     * incluant les enregistrements supprimés.
-     *
-     * @return static
-     */
-    public function withTrashed();
-
-    /**
-     * Retourne une nouvelle instance du repository, avec une instance du modèle
-     * contenant uniquement les enregistrements supprimés.
-     *
-     * @return static
-     */
-    public function onlyTrashed();
-
-    /**
      * Retrouve un enregistrement via son id.
      *
      * @param  int               $id
@@ -160,27 +144,24 @@ interface Repository
     /**
      * Supprime un enregistrement via son id.
      *
-     * @param  int     $id
-     * @param  boolean $force
+     * @param  int   $id
      * @return mixed
      */
-    public function deleteById($id, $force = false);
+    public function deleteById($id);
 
     /**
      * Supprime plusieurs enregistrements via leurs ids.
      *
-     * @param  array   $ids
-     * @param  boolean $force
+     * @param  array $ids
      * @return int
      */
-    public function deleteManyByIds(array $ids, $force = false);
+    public function deleteManyByIds(array $ids);
 
     /**
      * Supprime un enregistrement via des critères.
      *
-     * @param  array   $criteria
-     * @param  boolean $force
+     * @param  array $criteria
      * @return mixed
      */
-    public function deleteBy(array $criteria, $force = false);
+    public function deleteBy(array $criteria);
 }

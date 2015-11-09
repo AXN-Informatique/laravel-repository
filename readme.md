@@ -31,15 +31,16 @@ class EloquentUserRepository extends EloquentRepository
 
 ## Utilisation
 
-Les méthodes de base fournies sont les suivantes :
+Les méthodes de base (publiques) fournies sont les suivantes :
 
 - **getById**($id, $columns = null)
 - **getBy**(array $criteria, $columns = null)
-- **getManyByIds**(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
 - **getAll**($columns = null, $order = null, $limit = null, $offset = null)
+- **getAllByIds**(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
 - **getAllBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
 - **getAllDistinctBy**(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
 - **paginate**($perPage, array $criteria = [], $columns = null, $order = null)
+- **exists**($id)
 - **count**(array $criteria = [])
 - **create**(array $data)
 - **createMany**(array $datalist)
@@ -47,9 +48,9 @@ Les méthodes de base fournies sont les suivantes :
 - **updateManyByIds**(array $ids, array $data)
 - **updateBy**(array $criteria, array $data)
 - **updateOrCreate**(array $attributes, array $data)
-- **deleteById**($id, $force = false)
-- **deleteManyByIds**(array $ids, $force = false)
-- **deleteBy**(array $criteria, $force = false)
+- **deleteById**($id)
+- **deleteManyByIds**(array $ids)
+- **deleteBy**(array $criteria)
 
 ### Sélection de colonnes (paramètre $columns)
 
@@ -136,11 +137,11 @@ qui permettent de ne sélectionner qu'un nombre limité d'enregistrements.
 ### Ajout de méthodes à un repository Eloquent
 
 Il est bien sûr possible d'ajouter des méthodes à un repository, si les méthodes
-de base ne sont pas suffisantes. Les méthodes suivantes peuvent alors être utilisées
-pour construire des requêtes (repository Eloquent, uniquement) :
+de base ne sont pas suffisantes. Les méthodes suivantes (protégées) peuvent alors
+être utilisées pour construire des requêtes (repository Eloquent, uniquement) :
 
-- **newModel**(array $attributes = [], $exists = false)
-- **newQuery**()
+- **model**(array $attributes = [], $exists = false)
+- **query**()
 - **filter**($query, array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
 
 Exemples :
@@ -150,21 +151,21 @@ Exemples :
 
 public function getAllWithTrashed($columns = null, $order = null, $limit = null, $offset = null)
 {
-    $query = $this->newModel()->withTrashed();
+    $query = $this->model()->withTrashed();
 
     return $this->filter($query, [], $columns, $order, $limit, $offset)->get();
 }
 
 public function getAllActive($columns = null, $order = null, $limit = null, $offset = null)
 {
-    $query = $this->newQuery()->where('active', 1);
+    $query = $this->query()->where('active', 1);
 
     return $this->filter($query, [], $columns, $order, $limit, $offset)->get();
 }
 
 public function getAllForDataTable(array $where = [])
 {
-    $query = $this->newQuery()
+    $query = $this->query()
         ->join('profils', 'profils.id', '=', 'users.profil_id')
         ->select([
             'users.id',

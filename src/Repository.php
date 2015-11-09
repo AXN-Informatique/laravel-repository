@@ -23,18 +23,6 @@ interface Repository
     public function getBy(array $criteria, $columns = null);
 
     /**
-     * Retrouve plusieurs enregistrements via leurs ids.
-     *
-     * @param  array             $ids
-     * @param  array|string|null $columns
-     * @param  string|null       $order
-     * @param  int|null          $limit
-     * @param  int|null          $offset
-     * @return \Illuminate\Support\Collection
-     */
-    public function getManyByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null);
-
-    /**
      * Retrouve tous les enregistrements.
      *
      * @param  array|string|null $columns
@@ -44,6 +32,18 @@ interface Repository
      * @return \Illuminate\Support\Collection
      */
     public function getAll($columns = null, $order = null, $limit = null, $offset = null);
+
+    /**
+     * Retrouve plusieurs enregistrements via leurs ids.
+     *
+     * @param  array             $ids
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
+     * @return \Illuminate\Support\Collection
+     */
+    public function getAllByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null);
 
     /**
      * Retrouve plusieurs enregistrements via des critères.
@@ -82,6 +82,14 @@ interface Repository
     public function paginate($perPage, array $criteria = [], $columns = null, $order = null);
 
     /**
+     * Vérifie l'existence d'un enregistrement via son id.
+     *
+     * @param  int $id
+     * @return boolean
+     */
+    public function exists($id);
+
+    /**
      * Retourne le nombre d'enregistrements correspondant aux critères.
      *
      * @param  array $criteria
@@ -93,7 +101,7 @@ interface Repository
      * Crée un nouvel enregistrement.
      *
      * @param  array $data
-     * @return int
+     * @return \ArrayAccess
      */
     public function create(array $data);
 

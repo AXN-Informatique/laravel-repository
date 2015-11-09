@@ -48,22 +48,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getBy(array $criteria, $columns = null)
     {
-        return $this->filter($this->newQuery(), $criteria, $columns)->first();
-    }
-
-    /**
-     * Retrouve plusieurs enregistrements via leurs ids.
-     *
-     * @param  array             $ids
-     * @param  array|string|null $columns
-     * @param  string|null       $order
-     * @param  int|null          $limit
-     * @param  int|null          $offset
-     * @return Collection
-     */
-    public function getManyByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
-    {
-        return $this->getAllBy([$this->model->getKeyName().' IN' => $ids], $columns, $order, $limit, $offset);
+        return $this->filter($this->query(), $criteria, $columns)->first();
     }
 
     /**
@@ -81,6 +66,21 @@ abstract class EloquentRepository implements Repository
     }
 
     /**
+     * Retrouve plusieurs enregistrements via leurs ids.
+     *
+     * @param  array             $ids
+     * @param  array|string|null $columns
+     * @param  string|null       $order
+     * @param  int|null          $limit
+     * @param  int|null          $offset
+     * @return Collection
+     */
+    public function getAllByIds(array $ids, $columns = null, $order = null, $limit = null, $offset = null)
+    {
+        return $this->getAllBy([$this->model->getKeyName().' IN' => $ids], $columns, $order, $limit, $offset);
+    }
+
+    /**
      * Retrouve plusieurs enregistrements via des critères.
      *
      * @param  array             $criteria
@@ -92,7 +92,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getAllBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        return $this->filter($this->newQuery(), $criteria, $columns, $order, $limit, $offset)->get();
+        return $this->filter($this->query(), $criteria, $columns, $order, $limit, $offset)->get();
     }
 
     /**
@@ -107,7 +107,7 @@ abstract class EloquentRepository implements Repository
      */
     public function getAllDistinctBy(array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        return $this->filter($this->newQuery(), $criteria, $columns, $order, $limit, $offset)->distinct()->get();
+        return $this->filter($this->query(), $criteria, $columns, $order, $limit, $offset)->distinct()->get();
     }
 
     /**
@@ -122,7 +122,18 @@ abstract class EloquentRepository implements Repository
      */
     public function paginate($perPage, array $criteria = [], $columns = null, $order = null)
     {
-        return $this->filter($this->newQuery(), $criteria, $columns, $order)->paginate($perPage);
+        return $this->filter($this->query(), $criteria, $columns, $order)->paginate($perPage);
+    }
+
+    /**
+     * Vérifie l'existence d'un enregistrement via son id.
+     *
+     * @param  int $id
+     * @return boolean
+     */
+    public function exists($id)
+    {
+        return $this->count([$this->model->getKeyName() => $id]) > 0;
     }
 
     /**
@@ -133,18 +144,18 @@ abstract class EloquentRepository implements Repository
      */
     public function count(array $criteria = [])
     {
-        return $this->filter($this->newQuery(), $criteria)->count();
+        return $this->filter($this->query(), $criteria)->count();
     }
 
     /**
      * Crée un nouvel enregistrement.
      *
      * @param  array $data
-     * @return int
+     * @return Model
      */
     public function create(array $data)
     {
-        return $this->model->create($data)->getKey();
+        return $this->model->create($data);
     }
 
     /**
@@ -164,7 +175,7 @@ abstract class EloquentRepository implements Repository
             }
         }
 
-        $this->newQuery()->getQuery()->insert($datalist);
+        $this->query()->getQuery()->insert($datalist);
     }
 
     /**
@@ -200,7 +211,7 @@ abstract class EloquentRepository implements Repository
      */
     public function updateBy(array $criteria, array $data)
     {
-        return $this->filter($this->newQuery(), $criteria)->update($data);
+        return $this->filter($this->query(), $criteria)->update($data);
     }
 
     /**
@@ -245,7 +256,7 @@ abstract class EloquentRepository implements Repository
      */
     public function deleteBy(array $criteria)
     {
-        return $this->filter($this->newQuery(), $criteria)->delete();
+        return $this->filter($this->query(), $criteria)->delete();
     }
 
     /**
@@ -255,7 +266,7 @@ abstract class EloquentRepository implements Repository
 	 * @param  boolean $exists
      * @return Model
      */
-    protected function newModel(array $attributes = [], $exists = false)
+    protected function model(array $attributes = [], $exists = false)
     {
         return $this->model->newInstance($attributes, $exists);
     }
@@ -265,7 +276,7 @@ abstract class EloquentRepository implements Repository
      *
      * @return Builder
      */
-    protected function newQuery()
+    protected function query()
     {
         return $this->model->newQuery();
     }
@@ -284,15 +295,15 @@ abstract class EloquentRepository implements Repository
      */
     protected function filter(Builder $query, array $criteria, $columns = null, $order = null, $limit = null, $offset = null)
     {
-        if (!empty($criteria)) {
-            (new Parsers\CriteriaParser)->apply($query, $criteria);
-        }
+        (new Parsers\CriteriaParser)->apply($query, $criteria);
+
         if (!empty($columns)) {
             if (!is_array($columns)) {
                 $columns = array_map('trim', explode(',', $columns));
             }
             (new Parsers\ColumnsParser)->apply($query, $columns);
         }
+
         if (!empty($order)) {
             if (!is_array($order)) {
                 foreach (explode(',', $order) as $o) {
@@ -305,9 +316,11 @@ abstract class EloquentRepository implements Repository
                 }
             }
         }
+
         if ($limit !== null && $limit > 0) {
             $query->limit($limit);
         }
+
         if ($offset !== null && $offset >= 0) {
             $query->offset($offset);
         }

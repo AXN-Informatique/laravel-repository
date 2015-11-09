@@ -32,18 +32,18 @@ class CriteriaParser
      */
     public function apply(Builder $query, array $criteria)
     {
-        if (empty($criteria)) {
-            throw new Exception("Criteria cannot be empty.");
-        }
+        if (empty($criteria)) return;
 
+        // On réorganise les critères par relations
+        // Ex : ['a' => 0, 'r1.r2.b' => 1] devient ['' => ['a' => 0], 'r1.r2' => ['b' => 1]]
         $criteriaByRel = $this->groupByRelations($criteria);
 
         foreach ($criteriaByRel as $relation => $criteria) {
             if (empty($relation)) {
-                $this->where($query, $criteria);
+                $this->applyWhere($query, $criteria);
             } else {
                 $query->whereHas($relation, function($query) use ($criteria) {
-                    $this->where($query, $criteria);
+                    $this->applyWhere($query, $criteria);
                 });
             }
         }
@@ -56,7 +56,7 @@ class CriteriaParser
      * @param  array   $criteria
      * @return void
      */
-    protected function where(Builder $query, array $criteria)
+    protected function applyWhere(Builder $query, array $criteria)
     {
         foreach ($criteria as $column => $value) {
             list($column, $operator) = array_merge(explode(' ', $column), ['EQUAL']);
@@ -81,7 +81,7 @@ class CriteriaParser
     }
 
     /**
-     * Met les colonnes par relations.
+     * Réorganise les colonnes par relations.
      *
      * Par exemple, si l'on a ceci :
      *   ['a' => 0, 'r1.b' => 1, 'r1.c' => 2, 'r1.r2.d' => 3]
@@ -98,9 +98,9 @@ class CriteriaParser
         $criteriaByRel = [];
 
         foreach ($criteria as $column => $value) {
-            $segments = explode('.', $column);
-            $column   = array_pop($segments);
-            $relation = implode('.', $segments);
+            $segments = explode('.', $column);   // 'r1.r2.d' => ['r1', 'r2', 'd']
+            $column   = array_pop($segments);    // $column = 'd' ; $segments = ['r1', 'r2']
+            $relation = implode('.', $segments); // $relation = 'r1.r2'
 
             if (!isset($criteriaByRel[$relation])) {
                 $criteriaByRel[$relation] = [];

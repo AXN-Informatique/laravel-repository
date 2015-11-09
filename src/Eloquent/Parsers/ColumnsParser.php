@@ -20,10 +20,13 @@ class ColumnsParser
      */
     public function apply(Builder $query, array $columns)
     {
+        // On réorganise les colonnes par relations
+        // Ex : ['a', 'r1.r2.b'] devient ['' => ['a'], 'r1' => [], 'r1.r2' => ['b']]
         $columnsByRel = $this->groupByRelations($columns);
 
         // On tri le tableau pour aller de la relation la plus profonde à la moins profonde
-        // Ex : ['roles.permissions' => [...], 'roles' => [...], '' => [...]]
+        // Ex : ['' => [...], 'r1' => [...], 'r1.r2' => [...]] devient ['r1.r2' => [...], 'r1' => [...], '' => [...]]
+        // On a besoin que ce soit dans cet ordre pour que le "with" d'Eloquent fonctionne correctement...
         uksort($columnsByRel, function($a, $b) {
             $aNbDots = substr_count($a, '.');
             $bNbDots = substr_count($b, '.');
@@ -31,16 +34,17 @@ class ColumnsParser
             return ($aNbDots > $bNbDots ? -1 : ($aNbDots < $bNbDots ? 1 : 0));
         });
 
+        // On ajoute les colonnes nécessaires (clés étrangères) à l'eager-loading
         foreach ($columnsByRel as $relation => $columns) {
             $this->addKeysForEagerLoading($columnsByRel, $relation, $query->getModel());
         }
 
         foreach ($columnsByRel as $relation => $columns) {
             if (empty($relation)) {
-                $this->select($query, $columns);
+                $this->applySelect($query, $columns);
             } else {
                 $query->with([$relation => function($query) use ($columns) {
-                    $this->select($query, $columns);
+                    $this->applySelect($query, $columns);
                 }]);
             }
         }
@@ -53,7 +57,7 @@ class ColumnsParser
      * @param  array            $columns
      * @return void
      */
-    protected function select($query, array $columns)
+    protected function applySelect($query, array $columns)
     {
         $query->select(array_map(
             function($column) use ($query) {
@@ -64,8 +68,8 @@ class ColumnsParser
     }
 
     /**
-     * Met les colonnes par relations et crée aussi les emplacements des relations
-     * pour lesquelles il n'y a pas de sélection de champs.
+     * Réorganise les colonnes par relations et crée aussi les emplacements des
+     * relations pour lesquelles il n'y a pas de sélection de champs.
      *
      * Par exemple, si l'on a ceci :
      *   ['a', 'r1.r2.b']
@@ -82,13 +86,15 @@ class ColumnsParser
         $columnsByRel = [];
 
         foreach ($columns as $column) {
-            $segments = explode('.', $column);
-            $column   = array_pop($segments);
+            $segments = explode('.', $column); // 'r1.r2.b' => ['r1', 'r2', 'b']
+            $column   = array_pop($segments);  // $column = 'b' ; $segments = ['r1', 'r2']
             $relation = '';
 
-            array_unshift($segments, $relation);
+            array_unshift($segments, $relation); // $segments = ['', 'r1', 'r2']
 
+            // Boucle nécessaire pour avoir tous les niveaux de profondeur dans $columnsByRel
             foreach ($segments as $segment) {
+                // D'abord '', puis 'r1', puis 'r1.r2'
                 $relation .= (!empty($relation) ? '.' : '').$segment;
 
                 if (!isset($columnsByRel[$relation])) {
@@ -112,26 +118,31 @@ class ColumnsParser
      */
     protected function addKeysForEagerLoading(&$columnsByRel, $current, Model $model)
     {
-        $relationsNames = !empty($current) ? explode('.', $current) : [];
+        $relationsNames = !empty($current) ? explode('.', $current) : []; // 'r1.r2' => ['r1', 'r2']
         $relation = null;
 
+        // Permet de retrouver l'instance de la relation courante ($current) ainsi que son modèle
+        // Ex : si $relationsNames = ['r1', 'r2'] alors $relation = $model->r1()->getModel()->r2()
+        //      et $model = $model->r1()->getModel()->r2()->getModel()
         foreach ($relationsNames as $relationName) {
             $relation = $model->$relationName();
             $model = $relation->getModel();
         }
 
+        // On ajoute la clé primaire du modèle à la liste des colonnes
         $this->push($columnsByRel[$current], $model->getKeyName());
 
+        // On ajoute la clé étrangère en fonction de la relation concernée
         if ($relation instanceof HasOneOrMany) {
-            $this->push($columnsByRel[$current], $relation->getPlainForeignKey());
+            $this->push($columnsByRel[$current], $relation->getPlainForeignKey()); // $columnsByRel['r1.r2'] = 't1_id'
         }
         elseif ($relation instanceof BelongsTo) {
-            $parent = implode('.', array_slice($relationsNames, 0, -1));
+            $parent = implode('.', array_slice($relationsNames, 0, -1)); // ['r1', 'r2'] => 'r1'
 
-            $this->push($columnsByRel[$parent], $relation->getForeignKey());
+            $this->push($columnsByRel[$parent], $relation->getForeignKey()); // $columnsByRel['r1'][] = 't2_id'
 
             if ($relation instanceof MorphTo) {
-                $this->push($columnsByRel[$parent], $relation->getMorphType());
+                $this->push($columnsByRel[$parent], $relation->getMorphType()); // $columnsByRel['r1'][] = 'morphable_type'
             }
         }
     }

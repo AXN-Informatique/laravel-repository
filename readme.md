@@ -1,3 +1,5 @@
+***abandoned***
+
 # Laravel Repository
 
 Ce package offre des fonctionnalités de base pour le repository pattern avec Laravel 5.

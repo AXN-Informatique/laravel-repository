@@ -1,9 +1,9 @@
 {
     "name" : "axn/laravel-repository",
-    "description" : "Implémentation du design pattern repositories pour Laravel 5",
-    "homepage" : "https://bitbucket.org/axn/laravel-repository",
+    "description" : "Implementing the design pattern repositories for Laravel 5",
+    "homepage" : "https://github.com/AXN-Informatique/laravel-repository",
     "support" : {
-        "issues" : "https://bitbucket.org/axn/laravel-repository/issues?status=new&status=open"
+        "issues" : "https://github.com/AXN-Informatique/laravel-repository/issues"
     },
     "authors" : [{
             "name" : "AXN Informatique",
